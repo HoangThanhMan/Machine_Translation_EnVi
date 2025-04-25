@@ -1,0 +1,46 @@
+path:
+    train:
+        src: "dataset/train.en"
+        tgt: "dataset/train.vi"
+    valid:
+        src: "dataset/valid.en"
+        tgt: "dataset/valid.vi"
+    test:
+        src: "dataset/test.en"
+        tgt: "dataset/test.vi"
+
+
+checkpoint:
+    dir: "checkpoint"
+    best: "checkpoint_best.pt"
+    last: "checkpoint_last.pt"
+    results: "results.csv"
+    vocab:
+        src: "src_vocab.txt"
+        tgt: "tgt_vocab.txt"
+    dataloaders: "dataloaders.pt"
+
+
+# vocabulary options
+min_freq: 1
+vocab_size: null
+
+# training hyperparameters
+batch_size: 32
+total_epoch: 10
+
+clip: 1.0
+
+# model architecture
+d_model: 256
+max_len: 256
+ffn_hidden: 512
+n_heads: 8
+n_layers: 3
+drop_prob: 0.1
+
+# optimizer
+init_lr: !!float 5e-4
+
+# testing
+beam_size: 1
