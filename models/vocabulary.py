@@ -36,7 +36,7 @@ class Vocabulary:
         if add_bos_eos:
             words = ["<bos>"] + words + ["<eos>"]
 
-        ids = [self.word2id[word] for word in words]
+        ids = [self[word] for word in words]
         return torch.tensor(ids, dtype=torch.int64)
 
     def sents2tensors(self, tokenized_sents, add_bos_eos=False):
@@ -69,7 +69,7 @@ class ParallelVocabulary:
         self.is_sorted = is_sorted
         self.device = device
 
-    def collate_fn(self, examples, is_sorted=False):
+    def collate_fn(self, examples):
         src_sents = [pair["src"] for pair in examples]
         tgt_sents = [pair["tgt"] for pair in examples]
         if self.is_sorted:

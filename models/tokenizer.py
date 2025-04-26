@@ -42,7 +42,7 @@ class ViTokenizer(BaseTokenizer):
         if len(sents) == 0:
             return list()
         else:
-            return PyViTokenizer.spacy_tokenizer(sents)[0]
+            return PyViTokenizer.spacy_tokenize(sents)[0]
 
     def detokenize(self, tokens):
         return  " ".join(tokens)
