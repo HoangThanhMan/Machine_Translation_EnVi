@@ -13,7 +13,7 @@ from models.tokenizer import EnTokenizer, ViTokenizer
 from models.vocabulary import ParallelVocabulary
 
 def load_dataloader_from_fpath(pair_fpath, src_tok, tgt_tok, batch_size, max_len,
-                               device, is_lowercase, is_train=False, min_freq=1, 
+                               device, is_lowercase, is_train=False, min_freq=1,
                                vocab_size=None):
     
     src_sents = data_utils.read_sents(pair_fpath["src"], is_lowercase)
@@ -25,6 +25,7 @@ def load_dataloader_from_fpath(pair_fpath, src_tok, tgt_tok, batch_size, max_len
                                                                                             tgt_tok.tokenize)
     
     if is_train:
+        print("Build vocab...")
         src_tok.build_vocab(src_tokenized_sents, is_tokenized=True, min_freq=min_freq, vocab_size=vocab_size)
         tgt_tok.build_vocab(tgt_tokenized_sents, is_tokenized=True, min_freq=min_freq, vocab_size=vocab_size)
 
@@ -51,10 +52,11 @@ def main(config_fpath="config.yml"):
     src_tokenizer = EnTokenizer()
     tgt_tokenizer = ViTokenizer()
 
-    print("Load DataLoader")
+    print("Load DataLoader...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load train
+    print("Load training set")
     train_loader, src_tokenizer, tgt_tokenizer = load_dataloader_from_fpath(path["train"],
                                                                                 src_tokenizer, 
                                                                                 tgt_tokenizer, 
@@ -65,7 +67,8 @@ def main(config_fpath="config.yml"):
                                                                                 min_freq=config["min_freq"], 
                                                                                 vocab_size=config["vocab_size"])
 
-    # Load valid 
+    # Load valid
+    print("Load validation set")
     valid_loader = load_dataloader_from_fpath(path["valid"],
                                                 src_tokenizer,
                                                 tgt_tokenizer,
@@ -76,6 +79,7 @@ def main(config_fpath="config.yml"):
                                                 is_train=False)
     
     # Load test
+    print("Load test set")
     test_loader = load_dataloader_from_fpath(path["test"],
                                                 src_tokenizer,
                                                 tgt_tokenizer,
