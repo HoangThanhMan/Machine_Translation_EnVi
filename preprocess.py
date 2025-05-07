@@ -50,7 +50,7 @@ def main(config_fpath="config.yml"):
     checkpoint = config["checkpoint"]
 
     src_tokenizer = EnTokenizer()
-    tgt_tokenizer = ViTokenizer()
+    tgt_tokenizer = EnTokenizer()
 
     print("Load DataLoader...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -37,7 +37,7 @@ class Encoder(nn.Module):
         self.device = device
 
         self.tok_embedding = nn.Embedding(input_dim, hid_dim)
-        self.pos_encoder = PositionalEncoder(hid_dim, max_length, dropout)
+        self.pos_embedding = nn.Embedding(max_length, hid_dim)
 
         self.layers = nn.ModuleList([
             EncoderLayer(hid_dim, n_heads, pf_dim, dropout, device)
@@ -51,14 +51,20 @@ class Encoder(nn.Module):
         # src = [batch size, src len]
         # src_mask = [batch size, 1, 1, src len]
 
-        # Token embedding
-        src = self.tok_embedding(src) * self.scale  # [batch size, src len, hid_dim]
+        batch_size, src_len = src.shape
 
-        # Positional encoding
-        src = self.pos_encoder(src)  # [batch size, src len, hid_dim]
+        # Token embedding
+        tok_emb = self.tok_embedding(src) * self.scale  # [batch size, src len, hid_dim]
+
+        # Positional embedding
+        pos = torch.arange(0, src_len).unsqueeze(0).repeat(batch_size, 1).to(self.device)  # [batch size, src len]
+        pos_emb = self.pos_embedding(pos)  # [batch size, src len, hid_dim]
+
+        src = self.dropout(tok_emb + pos_emb)  # [batch size, src len, hid_dim]
 
         # Pass through stacked encoder layers
         for layer in self.layers:
             src = layer(src, src_mask)
 
         return src  # [batch size, src len, hid_dim]
+

@@ -7,7 +7,7 @@ class Vocabulary:
     def __init__(self):
         self.special_tokens = ["<unk>", "<pad>", "<bos>", "<eos>"]
         self.word2id = {token : idx for idx, token in enumerate(self.special_tokens)}
-        self.id2word = {idx : token for idx, token in self.word2id.items()}
+        self.id2word = {idx : token for token, idx in self.word2id.items()}
 
         self.unk_id = self.word2id["<unk>"]
         self.pad_id = self.word2id["<pad>"]

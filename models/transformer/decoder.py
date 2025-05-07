@@ -41,7 +41,7 @@ class Decoder(nn.Module):
 
         self.device = device
         self.token_embedding = nn.Embedding(output_dim, hid_dim)
-        self.position_encoder = PositionalEncoder(hid_dim, max_len, dropout)
+        self.pos_embedding = nn.Embedding(max_len, hid_dim)
 
         self.layers = nn.ModuleList([
             DecoderLayer(hid_dim, n_heads, pf_dim, dropout, device)
@@ -49,11 +49,19 @@ class Decoder(nn.Module):
         ])
 
         self.fc_out = nn.Linear(hid_dim, output_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.scale = torch.sqrt(torch.tensor(hid_dim, dtype=torch.float32)).to(device)
 
     def forward(self, tgt, memory, tgt_mask, src_mask):
-        # tgt: [batch, tgt_len]
-        x = self.token_embedding(tgt)  # [batch, tgt_len, hid_dim]
-        x = self.position_encoder(x)   # [batch, tgt_len, hid_dim] with positional encoding added
+        # tgt: [batch size, tgt len]
+        batch_size, tgt_len = tgt.shape
+
+        tok_emb = self.token_embedding(tgt) * self.scale  # [batch, tgt_len, hid_dim]
+
+        pos = torch.arange(0, tgt_len).unsqueeze(0).repeat(batch_size, 1).to(self.device)  # [batch, tgt_len]
+        pos_emb = self.pos_embedding(pos)  # [batch, tgt_len, hid_dim]
+
+        x = self.dropout(tok_emb + pos_emb)  # [batch, tgt_len, hid_dim]
 
         attn = None
         for layer in self.layers:
