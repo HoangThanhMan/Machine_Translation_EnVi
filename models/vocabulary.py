@@ -9,6 +9,11 @@ class Vocabulary:
         self.word2id = {token : idx for idx, token in enumerate(self.special_tokens)}
         self.id2word = {idx : token for token, idx in self.word2id.items()}
 
+        self.unk_token = "<unk>"
+        self.pad_token = "<pad>"
+        self.bos_token = "<bos>"
+        self.eos_token = "<eos>"
+
         self.unk_id = self.word2id["<unk>"]
         self.pad_id = self.word2id["<pad>"]
         self.bos_id = self.word2id["<bos>"]
