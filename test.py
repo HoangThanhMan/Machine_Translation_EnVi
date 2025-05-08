@@ -53,7 +53,7 @@ def build_model(config, src_tok, tgt_tok, device):
         pf_dim=config["ffn_hidden"],
         dropout=config["drop_prob"],
         device=device,
-        max_len=config["max_len"]
+        max_length=config["max_len"]
     )
 
     return NMT(

@@ -55,7 +55,7 @@ def build_model(src_tok, tgt_tok, device):
 
     dec = Decoder(output_dim=len(tgt_tok.vocab), hid_dim=d_model, n_layers=n_layers,
                   n_heads=n_heads, pf_dim=ffn_hidden, dropout=drop_prob,
-                  device=device, max_len=max_len)
+                  device=device, max_length=max_len)
 
     model = NMT(enc, dec, src_tok.vocab.pad_id, tgt_tok.vocab.pad_id, device).to(device)
     criterion = nn.CrossEntropyLoss(ignore_index=tgt_tok.vocab.pad_id)
