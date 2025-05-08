@@ -29,7 +29,7 @@ def load_tokenizers(checkpoint_dir, vocab_config):
 
 def load_dataloader(checkpoint_dir, dataloaders_file):
     dataloaders_path = os.path.join(checkpoint_dir, dataloaders_file)
-    dataloaders = torch.load(dataloaders_path)
+    dataloaders = torch.load(dataloaders_path, weights_only=False)
     return dataloaders["test_loader"]
 
 
@@ -53,7 +53,7 @@ def build_model(config, src_tok, tgt_tok, device):
         pf_dim=config["ffn_hidden"],
         dropout=config["drop_prob"],
         device=device,
-        max_length=config["max_len"]
+        max_len=config["max_len"]
     )
 
     return NMT(
