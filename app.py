@@ -15,6 +15,7 @@ from models.transformer.decoder import Decoder
 from models.nmt import NMT
 from models.tokenizer import EnTokenizer
 
+# Load configuration and model
 def load_tokenizers_and_model(config_fpath):
     global config, checkpoint
     config = data_utils.get_config(config_fpath)
@@ -56,7 +57,7 @@ def load_tokenizers_and_model(config_fpath):
 
     return src_tok, tgt_tok, model
 
-
+# Function to set custom theme for the Streamlit app
 def set_custom_theme():
     st.markdown("""
     <style>
@@ -161,7 +162,68 @@ def set_custom_theme():
     </style>
     """, unsafe_allow_html=True)
 
+def translate(input_text, src_tok, tgt_tok, model, device, max_len, translation_method, custom_beam_size, output_container):
+    if not input_text.strip():
+        st.warning("Please enter some text to translate.")
+        return
+        
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    # Show translation in progress
+    status_text.markdown("⏳ Tokenizing input text...")
+    progress_bar.progress(20)
+    time.sleep(0.3)
+    
+    # Translate using selected method
+    status_text.markdown("🔄 Translating text...")
+    progress_bar.progress(40)
+    
+    if translation_method == "Greedy Search":
+        pred_tokens, attention = model_utils.translate_sentence(input_text, 
+                                                            src_tok, tgt_tok, 
+                                                            model, device, 
+                                                            max_len)
+        progress_bar.progress(60)
+        time.sleep(0.2)
+        
+        translated_text = tgt_tok.detokenize(pred_tokens[1:-1])
+        candidates = [(pred_tokens, 0)]  # Mock score for consistent UI
+        
+    else:  # Beam Search
+        status_text.markdown("🔍 Performing beam search translation...")
+        progress_bar.progress(50)
+        candidates = model_utils.translate_sentence_beam_search(input_text,
+                                                            src_tok, tgt_tok, 
+                                                            model, device, 
+                                                            max_len, custom_beam_size)
+        progress_bar.progress(70)
+        time.sleep(0.2)
+        
+        candidates = [(tokens, score) for tokens, score in candidates]
+        pred_tokens = candidates[0][0]  # Best result
+        translated_text = tgt_tok.detokenize(pred_tokens[1:-1])
+        
+        _, attention = model_utils.translate_sentence(input_text, 
+                                                src_tok, tgt_tok, 
+                                                model, device, 
+                                                max_len)
+    
+    status_text.markdown("✅ Translation complete!")
+    progress_bar.progress(100)
+    time.sleep(0.5)
+    progress_bar.empty()
+    status_text.empty()
+    
+    output_container.text_area("", translated_text, height=200, key="output_text_updated", label_visibility="collapsed")
+    
+    display_translation_details(input_text, translated_text, src_tok, pred_tokens, attention)
+    
+    if translation_method == "Beam Search" and len(candidates) > 1:
+        display_beam_search_results(candidates, tgt_tok)
 
+
+# Function to display the translation area
 def display_translation_area(src_tok, tgt_tok, model, device, max_len, beam_size):
     st.markdown('<div class="main-header"><h1>English-Vietnamese Neural Machine Translation</h1></div>', unsafe_allow_html=True)
     
@@ -170,7 +232,16 @@ def display_translation_area(src_tok, tgt_tok, model, device, max_len, beam_size
         
         with col1:
             st.markdown('<p class="text-area-label"><span class="language-badge">EN</span>English Text</p>', unsafe_allow_html=True)
-            input_text = st.text_area("", "Hello, how are you?", height=200, max_chars=400, key="input_text", label_visibility="collapsed")
+            input_text = st.text_area(
+                "", 
+                value=st.session_state.get('custom_input_text', "Hello, how are you?"),  # Use session state or default
+                height=200, 
+                max_chars=400, 
+                key="input_text", 
+                label_visibility="collapsed"
+            )
+            # Update custom session state when user types
+            st.session_state.custom_input_text = input_text
         
         with col2:
             st.markdown('<p class="text-area-label"><span class="language-badge">VI</span>Vietnamese Translation</p>', unsafe_allow_html=True)
@@ -197,73 +268,11 @@ def display_translation_area(src_tok, tgt_tok, model, device, max_len, beam_size
         translation_method = "Beam Search"
     
     if translate_button:
-        if not input_text.strip():
-            st.warning("Please enter some text to translate.")
-            return
-        
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        # Show translation in progress
-        status_text.markdown("⏳ Tokenizing input text...")
-        progress_bar.progress(20)
-        time.sleep(0.3)
-        
-        # Translate using selected method
-        status_text.markdown("🔄 Translating text...")
-        progress_bar.progress(40)
-        
-        if translation_method == "Greedy Search":
-            pred_tokens, attention = model_utils.translate_sentence(input_text, 
-                                                              src_tok, tgt_tok, 
-                                                              model, device, 
-                                                              max_len)
-            progress_bar.progress(60)
-            time.sleep(0.2)
-            
-            translated_text = tgt_tok.detokenize(pred_tokens[1:-1])
-            candidates = [(pred_tokens, 0)]  # Mock score for consistent UI
-            
-        else:  # Beam Search
-            status_text.markdown("🔍 Performing beam search translation...")
-            progress_bar.progress(50)
-            candidates = model_utils.translate_sentence_beam_search(input_text,
-                                                              src_tok, tgt_tok, 
-                                                              model, device, 
-                                                              max_len, custom_beam_size)
-            progress_bar.progress(70)
-            time.sleep(0.2)
-            
-            # Cut off <bos> and <eos> tokens
-            candidates = [(tokens, score) for tokens, score in candidates]
-            pred_tokens = candidates[0][0]  # Best result
-            translated_text = tgt_tok.detokenize(pred_tokens[1:-1])
-            
-            # Get attention from best candidate for visualization
-            _, attention = model_utils.translate_sentence(input_text, 
-                                                    src_tok, tgt_tok, 
-                                                    model, device, 
-                                                    max_len)
-        
-        status_text.markdown("✅ Translation complete!")
-        progress_bar.progress(100)
-        time.sleep(0.5)
-        progress_bar.empty()
-        status_text.empty()
-        
-        # Display translation result
-        output_container.text_area("", translated_text, height=200, key="output_text_updated", label_visibility="collapsed")
-        
-        # Show metrics and details
-        display_translation_details(input_text, translated_text, src_tok, pred_tokens, attention)
-        
-        # Show beam search results if applicable
-        if translation_method == "Beam Search" and len(candidates) > 1:
-            display_beam_search_results(candidates, tgt_tok)
+        with st.spinner("Translating..."):
+            translate(input_text, src_tok, tgt_tok, model, device, max_len, translation_method, custom_beam_size, output_container)
 
-
+# Function to display translation details and metrics
 def display_translation_details(input_text, translated_text, src_tok, pred_tokens, attention):
-    """Display metrics and details about the translation"""
     st.markdown('<h2 class="sub-header">Translation Details</h2>', unsafe_allow_html=True)
     
     with st.container():
@@ -300,8 +309,8 @@ def display_translation_details(input_text, translated_text, src_tok, pred_token
         """, unsafe_allow_html=True)
 
 
+# Function to display beam search results
 def display_beam_search_results(candidates, tgt_tok):
-    """Display beam search alternative translations"""
     st.markdown('<h2 class="sub-header">Alternative Translations</h2>', unsafe_allow_html=True)
     
     st.markdown("""
@@ -325,9 +334,8 @@ def display_beam_search_results(candidates, tgt_tok):
     beam_df = pd.DataFrame(beam_results)
     st.dataframe(beam_df, use_container_width=True, hide_index=True)
 
-
+# Function to display model information
 def display_model_info():
-    """Display information about the translation model"""
     with st.expander("About this Translation Model", expanded=False):
         st.markdown("""
         <div style="padding: 1rem;">
@@ -344,7 +352,6 @@ def display_model_info():
 
 
 def display_footer():
-    """Display footer with credits"""
     st.markdown("""
     <div class="footer">
         <p>English-Vietnamese Neural Machine Translation © 2025</p>
@@ -352,9 +359,7 @@ def display_footer():
     </div>
     """, unsafe_allow_html=True)
 
-
 def main(config_fpath="config.yml"):
-    """Main application function"""
     # Set page configuration
     st.set_page_config(
         page_title="English-Vietnamese Translation",
@@ -374,6 +379,10 @@ def main(config_fpath="config.yml"):
     # Load models
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
+    # Initialize session state for input text if not already set
+    if 'custom_input_text' not in st.session_state:
+        st.session_state.custom_input_text = "Hello, how are you?"
+    
     # Create a sidebar for app information
     with st.sidebar:
         st.image("https://img.icons8.com/fluency/96/000000/translation.png")
@@ -382,6 +391,7 @@ def main(config_fpath="config.yml"):
         
         if st.checkbox("Show Model Information"):
             st.write(f"Model Parameters: {config['d_model']}")
+            st.write(f"Batch Size: {config['batch_size']}")
             st.write(f"Attention Heads: {config['n_heads']}")
             st.write(f"Transformer Layers: {config['n_layers']}")
             st.write(f"Max Sequence Length: {config['max_len']}")
@@ -415,14 +425,15 @@ def main(config_fpath="config.yml"):
             "I've been learning Vietnamese for three months."
         ]
         
+        cols = st.columns(3)
         for i, example in enumerate(examples):
-            if st.button(f"Try Example {i+1}", key=f"example_{i}"):
-                st.session_state.input_text = example
-                st.experimental_rerun()
+            with cols[i % 3]:
+                if st.button(f"Example {i+1}", key=f"example_{i}"):
+                    st.session_state.custom_input_text = example
+                    st.rerun()
     
     # Display footer
     display_footer()
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Host web app with streamlit")
